@@ -4,7 +4,7 @@ This Project can collect data about apps on Google-Play Store and their reviews 
 
 ## Components
 
-![Project Components](Project Components.png)
+![Project Components](./Project Components.png)
 ## Installation
 
 You just need to have docker and python installed on your system , other things will be installed automatically
