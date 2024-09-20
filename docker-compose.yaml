@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  django:
+    image: django
+    container_name: django
+    build:
+      context: ./testApp
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./testApp:/testApp
+    depends_on:
+      - postgres
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - DB_NAME=dbtest
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    ports:
+      - "8000:8000"
+
+  crawler:
+    build:
+      context: ./crawler
+    container_name: crawler
+    command: ["sh","-c","sleep 20s && python crawler.py"]
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      - DB_NAME=dbtest
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - KAFKA_BROKER=kafka:9092
+      - CYCLE_BREAK = 900
+    
+    ports:
+      - "8070:8070"  
+
+  dbms:
+    build:
+      context: ./dbms
+    container_name: dbms
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      - DB_NAME=dbtest
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - KAFKA_BROKER=kafka:9092
+    command: ["sh","-c", "sleep 5s && python DBMS.py"]  
+    ports:
+      - "8075:8075"  
+
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_DB: dbtest
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      #- ./init/init.sql:/docker-entrypoint-initdb.d/init.sql
+       #docker exec -it postgres psql -U postgres
+
+  kafka:
+    image: apache/kafka:latest
+    container_name: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+    ports:
+      - "9092:9092"
+    
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    environment:
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=dbtest
+      - MB_DB_PORT=5432
+      - MB_DB_USER=postgres
+      - MB_DB_PASS=root
+      - MB_DB_HOST=postgres
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

@@ -1,0 +1,14 @@
+all:
+  hosts:
+    192.168.1.10:
+      ansible_user: unix
+  children:
+    webservers:
+      hosts:
+        192.168.1.10:
+    databases:
+      hosts:
+        192.168.1.10:
+    brokers:
+      hosts:
+        192.168.1.10:

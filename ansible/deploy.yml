@@ -1,0 +1,49 @@
+---
+- name: Deploy Docker Compose Application
+  hosts: your_target_group
+  become: yes
+  vars:
+    docker_compose_version: "1.29.2"
+
+  tasks:
+    - name: Installing Docker
+      apt:
+        name: docker.io
+        state: present
+      notify:
+        - Start Docker
+
+    - name: Installing Docker-Compose
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-$(uname -s)-$(uname -m)"
+        dest: /usr/local/bin/docker-compose
+        mode: "u+x"
+      become: yes
+
+    - name: Make sure Docker-Compose binary file is executable
+      file:
+        path: /usr/local/bin/docker-compose
+        mode: "u+x"
+
+    - name: Create Docker-Compose directory
+      file:
+        path: /opt/docker-compose
+        state: directory
+        mode: "0755"
+
+    - name: Copy Docker-Compose file
+      copy:
+        src: docker-compose.yml
+        dest: /opt/docker-compose/docker-compose.yml
+
+    - name: Start Docker-Compose services
+      docker_compose:
+        project_src: /opt/docker-compose
+        state: present
+
+  handlers:
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes

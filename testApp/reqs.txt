@@ -1,0 +1,6 @@
+django==4.2.15
+djangorestframework==3.15.2
+google-play-scraper==1.2.7
+drf-spectacular==0.27.2
+drf-yasg==1.21.7
+psycopg2-binary
